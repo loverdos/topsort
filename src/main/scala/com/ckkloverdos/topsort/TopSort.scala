@@ -82,6 +82,15 @@ class TopSort {
     assert(result ne null)
     result
   }
+
+  def sortEx[S, N](graph: GraphStructure[S, N], structure: S): Traversable[N] = {
+    sort(graph, structure) match {
+      case ok @ TopSortOk(sorted) ⇒ sorted
+      case ko @ TopSortCycle(path) ⇒ throw new TopSortCycleException(path)
+    }
+  }
 }
+
+class TopSortCycleException[N](path: Traversable[N]) extends Exception
 
 object TopSort extends TopSort

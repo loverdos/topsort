@@ -17,8 +17,9 @@
 package com.ckkloverdos.topsort.util
 
 import com.ckkloverdos.topsort.event.{PrintStreamListener, TopSortListener}
-import com.ckkloverdos.topsort.{TopSortResult, GraphStructure, TopSort}
+import com.ckkloverdos.topsort.{GraphStructure, TopSort, TopSortResult}
 
+import scala.annotation.tailrec
 import scala.language.implicitConversions
 
 /**
@@ -36,20 +37,90 @@ case class SymbolGraph(map: Map[Symbol, Set[Symbol]] = Map()) {
     SymbolGraph(newMap)
   }
 
+  def +(a: Symbol): SymbolGraph =
+    if(map.contains(a))
+      this
+    else
+      SymbolGraph(map.updated(a, Set()))
+
+  def ++(that: SymbolGraph): SymbolGraph = {
+
+    val keys = this.map.keySet ++ that.map.keySet
+    val newValue =
+      for(key ← keys) yield {
+        val thisSet = this.map.getOrElse(key, Set())
+        val thatSet = that.map.getOrElse(key, Set())
+
+        (key, thisSet ++ thatSet)
+      }
+
+    SymbolGraph(Map(newValue.toSeq:_*))
+  }
+
   def topSort(listener: TopSortListener[Symbol]): Boolean =
-    TopSort.sort(SymbolGraph.SymbolGraphStruture, this, listener)
+    TopSort.sort(SymbolGraph.SymbolGraphStructure, this, listener)
 
   def topSort: TopSortResult[Symbol] =
-    TopSort.sort(SymbolGraph.SymbolGraphStruture, this)
+    TopSort.sort(SymbolGraph.SymbolGraphStructure, this)
+
+  def topSortEx: Traversable[Symbol] =
+    TopSort.sortEx(SymbolGraph.SymbolGraphStructure, this)
 }
 
 object SymbolGraph {
-  object SymbolGraphStruture extends GraphStructure[SymbolGraph, Symbol] {
-    def nodes(structure: SymbolGraph): Iterator[Symbol] =
-      structure.map.keysIterator
+  final val Empty = SymbolGraph()
 
-    def nodeDependencies(structure: SymbolGraph, node: Symbol): Iterator[Symbol] =
-      structure.map.get(node) match {
+  //////////////////////////////////////////////
+  // Input looks like this:
+  //  "a->b;b->c;c->a;a->a,b->a"
+  //////////////////////////////////////////////
+  // The approximate grammar is:
+  //   graph ::= line (';' line)*
+  //          |  line (',' line)*
+  //   line  ::= node '->' node ('->' node)*
+  //   node  ::= 'a' | 'b' | 'c' | ...
+  //
+  // Errors may be tolerated (e.g. s = "a b" produces an empty graph)
+  // but in such cases consider the behaviour as undefined.
+  //////////////////////////////////////////////
+  def apply(s: String): SymbolGraph = {
+    def parseLine(one: String): SymbolGraph = {
+      val split0 = one.split("""\s*->\s*""")
+      val split1 = split0.map(_.trim)
+      val split2 = split1.filterNot(_.isEmpty)
+      val split3 = split2.filter(_.length == 1)
+
+      @tailrec
+      def iterate(from: String, others: Iterator[String], graph: SymbolGraph): SymbolGraph = {
+        if(others.hasNext) {
+          val to = others.next()
+          iterate(to, others, graph + (Symbol(from), Symbol(to)))
+        }
+        else graph + Symbol(from)
+      }
+
+      val split = split3
+      split.length match {
+        case 0 ⇒ Empty
+        case _ ⇒
+          val iterator = split.iterator
+          val from = iterator.next()
+          iterate(from, iterator, Empty)
+      }
+    }
+
+    val split0 = s.split("""\s*(;|,)\s*""")
+    val split = split0
+
+    split.map(parseLine).foldLeft(Empty)(_ ++ _)
+  }
+
+  object SymbolGraphStructure extends GraphStructure[SymbolGraph, Symbol] {
+    def nodes(graph: SymbolGraph): Iterator[Symbol] =
+      graph.map.keysIterator
+
+    def nodeDependencies(graph: SymbolGraph, node: Symbol): Iterator[Symbol] =
+      graph.map.get(node) match {
         case None ⇒ Iterator.empty
         case Some(deps) ⇒ deps.iterator
       }

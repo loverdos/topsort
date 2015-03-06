@@ -17,9 +17,14 @@
 package com.ckkloverdos.topsort
 
 /**
- * Abstracts away the graph (data) structure.
+ * Provides API related to the node structure of a graph.
+ * This is totally external to concrete graph representations.
+ * The reason for its introduction is to not
+ * impose specific nominal sub-typing on Graph implementations.
+ *
+ * `G` is the graph data type and `N` is the node data type.
  */
-trait GraphStructure[S, N] {
-  def nodes(structure: S): Iterator[N]
-  def nodeDependencies(structure: S, node: N): Iterator[N]
+trait GraphStructure[G, N] {
+  def nodes(graph: G): Iterator[N]
+  def nodeDependencies(graph: G, node: N): Iterator[N]
 }
