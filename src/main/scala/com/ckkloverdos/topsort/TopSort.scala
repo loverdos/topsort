@@ -28,7 +28,7 @@ final case class TopSortCycle[N](path: Traversable[N]) extends TopSortResult[N]
  * Generalized, event-based topological sorter.
  */
 class TopSort {
-  def sort[S, N](graph: GraphStructure[S, N], structure: S, listener: TopSortListener[N]): Boolean = {
+  def sort[G, N](graphStructure: GraphStructure[G, N], graph: G, listener: TopSortListener[N]): Boolean = {
     val sorted = mutable.LinkedHashSet[N]()
     val searchPath = mutable.LinkedHashSet[N]()
 
@@ -51,7 +51,7 @@ class TopSort {
         searchPath += node
         listener.onAddSearchPath(searchPath, node, level)
 
-        val dependencies = graph.nodeDependencies(structure, node)
+        val dependencies = graphStructure.nodeDependencies(graph, node)
 
         sortNodes(dependencies, level + 1) && {
           sorted += node
@@ -66,7 +66,7 @@ class TopSort {
       else true
     }
 
-    val nodes = graph.nodes(structure)
+    val nodes = graphStructure.nodes(graph)
     val result = sortNodes(nodes, 0)
     if(result)
       listener.onResultSorted(sorted)
@@ -75,16 +75,16 @@ class TopSort {
     result
   }
 
-  def sort[S, N](graph: GraphStructure[S, N], structure: S): TopSortResult[N] = {
+  def sort[G, N](graphStructure: GraphStructure[G, N], graph: G): TopSortResult[N] = {
     var result: TopSortResult[N] = null
     val listener = new ResultListener[N](result = _)
-    this.sort(graph, structure, listener)
+    this.sort(graphStructure, graph, listener)
     assert(result ne null)
     result
   }
 
-  def sortEx[S, N](graph: GraphStructure[S, N], structure: S): Traversable[N] = {
-    sort(graph, structure) match {
+  def sortEx[G, N](graphStructure: GraphStructure[G, N], graph: G): Traversable[N] = {
+    sort(graphStructure, graph) match {
       case ok @ TopSortOk(sorted) ⇒ sorted
       case ko @ TopSortCycle(path) ⇒ throw new TopSortCycleException(path)
     }
