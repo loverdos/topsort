@@ -16,59 +16,19 @@
 
 package com.ckkloverdos.topsort.util
 
-import com.ckkloverdos.topsort.event.{PrintStreamListener, TopSortListener}
-import com.ckkloverdos.topsort.{GraphStructure, TopSort, TopSortResult}
+import com.ckkloverdos.topsort.event.PrintStreamListener
 
 import scala.annotation.tailrec
 import scala.language.implicitConversions
 
 /**
- *
+ * Convenience methods to create a graph of symbols from a simple
+ * textual representation.
+ * The motivation is to help debugging.
  */
-case class SymbolGraph(map: Map[Symbol, Set[Symbol]] = Map()) {
-  def +(ab: (Symbol, Symbol)): SymbolGraph = {
-    val (a, b) = ab
-    val newBSet =
-      map.get(a) match {
-        case None ⇒ Set(b)
-        case Some(set) ⇒ set + b
-      }
-    val newMap = map.updated(a, newBSet)
-    SymbolGraph(newMap)
-  }
-
-  def +(a: Symbol): SymbolGraph =
-    if(map.contains(a))
-      this
-    else
-      SymbolGraph(map.updated(a, Set()))
-
-  def ++(that: SymbolGraph): SymbolGraph = {
-
-    val keys = this.map.keySet ++ that.map.keySet
-    val newValue =
-      for(key ← keys) yield {
-        val thisSet = this.map.getOrElse(key, Set())
-        val thatSet = that.map.getOrElse(key, Set())
-
-        (key, thisSet ++ thatSet)
-      }
-
-    SymbolGraph(Map(newValue.toSeq:_*))
-  }
-
-  def topSort(listener: TopSortListener[Symbol]): Boolean =
-    TopSort.sort(SymbolGraph.SymbolGraphStructure, this, listener)
-
-  def topSort: TopSortResult[Symbol] =
-    TopSort.sort(SymbolGraph.SymbolGraphStructure, this)
-
-  def topSortEx: Traversable[Symbol] =
-    TopSort.sortEx(SymbolGraph.SymbolGraphStructure, this)
-}
-
 object SymbolGraph {
-  final val Empty = SymbolGraph()
+  final type SymbolGraph = SimpleGraph[Symbol]
+  final val Empty: SymbolGraph = SimpleGraph[Symbol](Map())
 
   //////////////////////////////////////////////
   // Input looks like this:
@@ -115,42 +75,31 @@ object SymbolGraph {
     split.map(parseLine).foldLeft(Empty)(_ ++ _)
   }
 
-  object SymbolGraphStructure extends GraphStructure[SymbolGraph, Symbol] {
-    def nodes(graph: SymbolGraph): Iterator[Symbol] =
-      graph.map.keysIterator
-
-    def nodeDependencies(graph: SymbolGraph, node: Symbol): Iterator[Symbol] =
-      graph.map.get(node) match {
-        case None ⇒ Iterator.empty
-        case Some(deps) ⇒ deps.iterator
-      }
-  }
-
   implicit class DependableSymbol(val a: Symbol) extends AnyVal {
     def depends(b: Symbol) = (a, b)
     def ==>(b: Symbol) = (a, b)
   }
 
-  val AGraph = new SymbolGraph() +
-    ('A depends 'B) + 
-    ('A depends 'C) + 
-    ('A depends 'D) +
-    ('C depends 'D)
+  val AGraph = Empty +
+    ('A ==> 'B) + 
+    ('A ==> 'C) + 
+    ('A ==> 'D) +
+    ('C ==> 'D)
 
-  val BGraph = new SymbolGraph() +
-    ('A depends 'B) +
-    ('A depends 'C) +
-    ('A depends 'D) +
-    ('C depends 'D) +
-    ('D depends 'A)
+  val BGraph = Empty +
+    ('A ==> 'B) +
+    ('A ==> 'C) +
+    ('A ==> 'D) +
+    ('C ==> 'D) +
+    ('D ==> 'A)
 
   def main(args: Array[String]): Unit = {
-    println("======= A Graph =======")
+    println("+======= A Graph =======")
     val alistener = PrintStreamListener.StdOut[Symbol]
     println(AGraph.topSort(alistener))
-    println("======= A Graph =======")
-    println("======= B Graph =======")
+    println("-======= A Graph =======")
+    println("+======= B Graph =======")
     println(BGraph.topSort)
-    println("======= B Graph =======")
+    println("-======= B Graph =======")
   }
 }

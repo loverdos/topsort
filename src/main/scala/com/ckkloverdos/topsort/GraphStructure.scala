@@ -25,6 +25,16 @@ package com.ckkloverdos.topsort
  * `G` is the graph data type and `N` is the node data type.
  */
 trait GraphStructure[G, N] {
+  /**
+   * Given a `graph`, returns an iterator of its nodes.
+   *
+   * @param graph The given graph.
+   * @return An iterator of the `graph` nodes.
+   */
   def nodes(graph: G): Iterator[N]
+
+  /**
+   * Given a `node` belonging to `graph`, returns the `node` dependencies.
+   */
   def nodeDependencies(graph: G, node: N): Iterator[N]
 }

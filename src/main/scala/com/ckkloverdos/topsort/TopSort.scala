@@ -20,8 +20,33 @@ import com.ckkloverdos.topsort.event.{ResultListener, TopSortListener}
 
 import scala.collection.mutable
 
+/**
+ * Result parent type for topological sorting.
+ * Two are the possible outcomes: Success is denoted by [[com.ckkloverdos.topsort.TopSortOk]]
+ * and failure is denoted by [[com.ckkloverdos.topsort.TopSortCycle]].
+ *
+ * @tparam N is the graph node type
+ *
+ * @see TopSortOk, TopSortCycle
+ */
 sealed trait TopSortResult[N]
+
+/**
+ * A successful topological sorting result.
+ *
+ * @param sorted
+ * @tparam N is the graph node type
+ */
 final case class TopSortOk[N](sorted: Traversable[N]) extends TopSortResult[N]
+
+/**
+ * A failed topological sorting result due to a cyclic dependency.
+ * The `path` provided is the detected cycle.
+ *
+ * @param path The detected cycle.
+ * @tparam N is the graph node type
+ *
+ */
 final case class TopSortCycle[N](path: Traversable[N]) extends TopSortResult[N]
 
 /**
@@ -75,6 +100,17 @@ class TopSort {
     result
   }
 
+  /**
+   * Sorts a graph topologically and returns the result.
+   *
+   * This method does not throw any [[com.ckkloverdos.topsort.TopSortCycleException]].
+   *
+   * @param graphStructure
+   * @param graph
+   * @tparam G
+   * @tparam N
+   * @return
+   */
   def sort[G, N](graphStructure: GraphStructure[G, N], graph: G): TopSortResult[N] = {
     var result: TopSortResult[N] = null
     val listener = new ResultListener[N](result = _)
@@ -83,6 +119,18 @@ class TopSort {
     result
   }
 
+  /**
+   * Sorts a graph topologically and returns the sorted nodes,
+   * from the more independent one to the more dependent one.
+   *
+   * It throws a [[com.ckkloverdos.topsort.TopSortCycleException]] in case there is a cycle.
+   *
+   * @param graphStructure
+   * @param graph
+   * @tparam G
+   * @tparam N
+   * @return
+   */
   def sortEx[G, N](graphStructure: GraphStructure[G, N], graph: G): Traversable[N] = {
     sort(graphStructure, graph) match {
       case ok @ TopSortOk(sorted) ⇒ sorted
