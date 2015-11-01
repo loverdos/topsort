@@ -58,9 +58,11 @@ final case class SimpleGraph[N](map: Map[N, Set[N]]) {
 
   def topSort(listener: TopSortListener[N]): Boolean = TopSort.sort(GraphStructure, this, listener)
 
-  def topSort: TopSortResult[N] = TopSort.sort(GraphStructure, this)
+  def topSortResult(listener: TopSortListener[N] = TopSortListener.NoOpListener[N]): TopSortResult[N] =
+    TopSort.sortResult(GraphStructure, this, listener)
 
-  def topSortEx: Traversable[N] = TopSort.sortEx(GraphStructure, this)
+  def topSortEx(listener: TopSortListener[N] = TopSortListener.NoOpListener[N]): Traversable[N] =
+    TopSort.sortEx(GraphStructure, this, listener)
 
   object GraphStructure extends GraphStructure[SimpleGraph[N], N] {
     def nodes(graph: SimpleGraph[N]): Iterator[N] = graph.map.keysIterator

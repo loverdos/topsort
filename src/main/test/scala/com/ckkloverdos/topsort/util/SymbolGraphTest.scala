@@ -42,14 +42,14 @@ class SymbolGraphTest {
 
   @Test def parseNoCycle1(): Unit = {
     val graph = SymbolGraph("a -> b; a -> c; a -> d")
-    val sorted = graph.topSortEx
+    val sorted = graph.topSortEx()
 
     sameIterators(Iterator('b, 'c, 'd, 'a), sorted.toIterator)
   }
 
   @Test def parseNoCycle2(): Unit = {
     val graph = SymbolGraph("a -> b; b -> c;;;; c -> d")
-    val sorted = graph.topSortEx
+    val sorted = graph.topSortEx()
 
     sameIterators(Iterator('d, 'c, 'b, 'a), sorted.toIterator)
   }
@@ -57,7 +57,7 @@ class SymbolGraphTest {
   @Test def parseCycle1(): Unit = {
     val graph = SymbolGraph("a -> a")
     try {
-      val sorted = graph.topSortEx
+      val sorted = graph.topSortEx()
       Assert.fail(""""a -> a" is a cycle""")
     }
     catch {

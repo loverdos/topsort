@@ -81,7 +81,7 @@ object SymbolGraph {
   }
 
   val AGraph = Empty +
-    ('A ==> 'B) + 
+    ('A ==> 'B) /* 'A depends on 'B */ +
     ('A ==> 'C) + 
     ('A ==> 'D) +
     ('C ==> 'D)
@@ -95,11 +95,11 @@ object SymbolGraph {
 
   def main(args: Array[String]): Unit = {
     println("+======= A Graph =======")
-    val alistener = PrintStreamListener.StdOut[Symbol]
-    println(AGraph.topSort(alistener))
+    val printListener = PrintStreamListener.StdOut[Symbol]
+    println(AGraph.topSort(printListener))
     println("-======= A Graph =======")
     println("+======= B Graph =======")
-    println(BGraph.topSort)
+    println(BGraph.topSortResult(printListener))
     println("-======= B Graph =======")
   }
 }

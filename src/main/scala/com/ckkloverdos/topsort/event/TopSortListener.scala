@@ -31,4 +31,34 @@ trait TopSortListener[N] {
   def onResultCycle(path: Traversable[N]): Unit = {}
 }
 
+object TopSortListener {
+  final def NoOpListener[N]: TopSortListener[N] = new TopSortListener[N] {}
+}
+
+class TopSortListeners[N](listeners: TopSortListener[N]*) extends TopSortListener[N] {
+  override def onNewNode(node: N, level: Int): Unit =
+    listeners.foreach(_.onNewNode(node, level))
+
+  override def onCycle(path: Traversable[N], level: Int): Unit =
+    listeners.foreach(_.onCycle(path, level))
+
+  override def onAddSearchPath(path: Traversable[N], lastAddition: N, level: Int): Unit =
+    listeners.foreach(_.onAddSearchPath(path, lastAddition, level))
+
+  override def onRemoveSearchPath( path: Traversable[N], lastRemoval: N, level: Int): Unit =
+    listeners.foreach(_.onRemoveSearchPath(path, lastRemoval, level))
+
+  override def onAcceptSorted(node: N, level: Int): Unit =
+    listeners.foreach(_.onAcceptSorted(node, level))
+
+  override def onAlreadySorted(node: N, level: Int): Unit =
+    listeners.foreach(_.onAlreadySorted(node, level))
+
+  override def onResultSorted(sorted: Traversable[N]): Unit =
+    listeners.foreach(_.onResultSorted(sorted))
+
+  override def onResultCycle(path: Traversable[N]): Unit =
+    listeners.foreach(_.onResultCycle(path))
+}
+
 

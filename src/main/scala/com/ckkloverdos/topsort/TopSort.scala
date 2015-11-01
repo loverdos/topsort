@@ -16,7 +16,7 @@
 
 package com.ckkloverdos.topsort
 
-import com.ckkloverdos.topsort.event.{ResultListener, TopSortListener}
+import com.ckkloverdos.topsort.event.{TopSortListeners, ResultListener, TopSortListener}
 
 import scala.collection.mutable
 
@@ -111,10 +111,15 @@ class TopSort {
    * @tparam N
    * @return
    */
-  def sort[G, N](graphStructure: GraphStructure[G, N], graph: G): TopSortResult[N] = {
+  def sortResult[G, N](
+    graphStructure: GraphStructure[G, N],
+    graph: G,
+    listener: TopSortListener[N] = TopSortListener.NoOpListener
+  ): TopSortResult[N] = {
     var result: TopSortResult[N] = null
-    val listener = new ResultListener[N](result = _)
-    this.sort(graphStructure, graph, listener)
+    val resultListener = new ResultListener[N](result = _)
+    val allListeners = new TopSortListeners(resultListener, listener)
+    this.sort(graphStructure, graph, allListeners)
     assert(result ne null)
     result
   }
@@ -131,8 +136,12 @@ class TopSort {
    * @tparam N
    * @return
    */
-  def sortEx[G, N](graphStructure: GraphStructure[G, N], graph: G): Traversable[N] = {
-    sort(graphStructure, graph) match {
+  def sortEx[G, N](
+    graphStructure: GraphStructure[G, N],
+    graph: G,
+    listener: TopSortListener[N] = TopSortListener.NoOpListener
+  ): Traversable[N] = {
+    sortResult(graphStructure, graph, listener) match {
       case ok @ TopSortOk(sorted) ⇒ sorted
       case ko @ TopSortCycle(path) ⇒ throw new TopSortCycleException(path)
     }
