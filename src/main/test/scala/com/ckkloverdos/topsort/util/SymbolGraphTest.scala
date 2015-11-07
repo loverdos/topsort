@@ -17,6 +17,7 @@
 package com.ckkloverdos.topsort.util
 
 import com.ckkloverdos.topsort.TopSortCycleException
+import com.ckkloverdos.topsort.event.{PrintStreamListener, TopSortListener}
 import org.junit.{Assert, Test}
 
 import scala.annotation.tailrec
@@ -39,7 +40,6 @@ class SymbolGraphTest {
       Assert.assertFalse(b.hasNext)
   }
 
-
   @Test def parseNoCycle1(): Unit = {
     val graph = SymbolGraph("a -> b; a -> c; a -> d")
     val sorted = graph.topSortEx()
@@ -57,11 +57,45 @@ class SymbolGraphTest {
   @Test def parseCycle1(): Unit = {
     val graph = SymbolGraph("a -> a")
     try {
-      val sorted = graph.topSortEx()
+      val _ = graph.topSortEx()
       Assert.fail(""""a -> a" is a cycle""")
     }
     catch {
       case _: TopSortCycleException[_] ⇒
+    }
+  }
+
+  @Test def checkDependent(): Unit = {
+    val graphStr =
+      """
+        | A -> A_1, A_2, A_3
+        | B -> B_1, B_2
+      """.stripMargin
+
+    val graph = SymbolGraph(graphStr)
+
+    assert(graph.dependenciesOf('A).size == 3, "graph.dependenciesOf('A).size == 3")
+    assert(graph.dependenciesOf('B).size == 2, "graph.dependenciesOf('B).size == 2")
+
+    val listener = new TopSortListener[Symbol] {
+      override def onEnter(dependentOpt: Option[Symbol], node: Symbol, level: Int): Unit = {
+        dependentOpt match {
+          case None ⇒
+          case Some(dependent) ⇒
+            val dependentName = dependent.name
+            val nodeName = node.name
+            assert(nodeName.startsWith(dependentName + "_"))
+        }
+      }
+    }
+
+    val path = graph.topSortEx(PrintStreamListener.StdOut.andThen(listener))
+    val sortedNodes = path.toSet
+    val allNodes = graph.allNodes
+    for {
+      node ← allNodes
+    } {
+      assert(sortedNodes.contains(node), s"sortedNodes.contains($node)")
     }
   }
 }

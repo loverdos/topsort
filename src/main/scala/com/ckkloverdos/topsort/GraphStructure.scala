@@ -34,7 +34,7 @@ trait GraphStructure[G, N] {
   def nodes(graph: G): Iterator[N]
 
   /**
-   * Given a `node` belonging to `graph`, returns the `node` dependencies.
+   * Given a `node` belonging to `graph`, returns an iterator with the `node` dependencies.
    */
   def nodeDependencies(graph: G, node: N): Iterator[N]
 }

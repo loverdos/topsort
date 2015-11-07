@@ -18,17 +18,52 @@ package com.ckkloverdos.topsort
 package event
 
 /**
- *
+ * A listener of interesting events from [[com.ckkloverdos.topsort.TopSort TopSort]].
  */
 trait TopSortListener[N] {
-  def onCheckNode(node: N, level: Int): Unit = {}
-  def onCycle(path: Traversable[N], level: Int): Unit = {}
-  def onAddSearchPath(path: Traversable[N], lastAddition: N, level: Int): Unit = {}
-  def onRemoveSearchPath(path: Traversable[N], lastRemoval: N, level: Int): Unit = {}
-  def onAcceptSorted(node: N, level: Int): Unit = {}
+  def onEnter(dependentOpt: Option[N], node: N, level: Int): Unit = {}
+
   def onAlreadySorted(node: N, level: Int): Unit = {}
+
+  /**
+    * Notifies that the `path` leads to a cycle and, as a consequence, the
+    * topologically sorting procedure is about to end.
+    *
+    * @param path
+    * @param level
+    */
+  def onCycle(path: Traversable[N], level: Int): Unit = {}
+
+  def onAddedToSearchPath(path: Traversable[N], addedNode: N, level: Int): Unit = {}
+
+  def onRemovedFromSearchPath(path: Traversable[N], removedNode: N, level: Int): Unit = {}
+
+  /**
+    * Notifies that the `node` has been added to the collection of the already sorted nodes.
+    * @param dependentOpt
+    * @param node
+    * @param level
+    */
+  def onAddedToSorted(node: N, level: Int): Unit = {}
+
+  /**
+    * Notifies that topological sorting has completed in success.
+    * @param sorted
+    */
   def onResultSorted(sorted: Traversable[N]): Unit = {}
+
+  /**
+    * Notifies that topological sorting has completed in failure and a cycle has been detected.
+    * @param path
+    */
   def onResultCycle(path: Traversable[N]): Unit = {}
+
+  /**
+    * Sequentially combines `this` listener with `that` listener, creating a new listener.
+    * @param that the other listener
+    * @return the new listener
+    */
+  def andThen(that: TopSortListener[N]): TopSortListener[N] = new TopSortListeners(this, that)
 }
 
 object TopSortListener {
@@ -36,20 +71,20 @@ object TopSortListener {
 }
 
 class TopSortListeners[N](listeners: TopSortListener[N]*) extends TopSortListener[N] {
-  override def onCheckNode(node: N, level: Int): Unit =
-    listeners.foreach(_.onCheckNode(node, level))
+  override def onEnter(dependentOpt: Option[N], node: N, level: Int): Unit =
+    listeners.foreach(_.onEnter(dependentOpt, node, level))
 
   override def onCycle(path: Traversable[N], level: Int): Unit =
     listeners.foreach(_.onCycle(path, level))
 
-  override def onAddSearchPath(path: Traversable[N], lastAddition: N, level: Int): Unit =
-    listeners.foreach(_.onAddSearchPath(path, lastAddition, level))
+  override def onAddedToSearchPath(path: Traversable[N], addedNode: N, level: Int): Unit =
+    listeners.foreach(_.onAddedToSearchPath(path, addedNode, level))
 
-  override def onRemoveSearchPath( path: Traversable[N], lastRemoval: N, level: Int): Unit =
-    listeners.foreach(_.onRemoveSearchPath(path, lastRemoval, level))
+  override def onRemovedFromSearchPath(path: Traversable[N], removedNode: N, level: Int): Unit =
+    listeners.foreach(_.onRemovedFromSearchPath(path, removedNode, level))
 
-  override def onAcceptSorted(node: N, level: Int): Unit =
-    listeners.foreach(_.onAcceptSorted(node, level))
+  override def onAddedToSorted(node: N, level: Int): Unit =
+    listeners.foreach(_.onAddedToSorted(node, level))
 
   override def onAlreadySorted(node: N, level: Int): Unit =
     listeners.foreach(_.onAlreadySorted(node, level))

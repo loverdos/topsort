@@ -18,7 +18,6 @@ package com.ckkloverdos.topsort.util
 
 import com.ckkloverdos.topsort.event.PrintStreamListener
 
-import scala.annotation.tailrec
 import scala.language.implicitConversions
 
 /**
@@ -31,67 +30,63 @@ object SymbolGraph {
   final val Empty: SymbolGraph = SimpleGraph[Symbol](Map())
 
   //////////////////////////////////////////////
-  // Input looks like this:
-  //  "a->b;b->c;c->a;a->a,b->a"
+  // ~ approximate implementation ~
   //////////////////////////////////////////////
-  // The approximate grammar is:
-  //   graph ::= line (';' line)*
-  //          |  line (',' line)*
-  //   line  ::= node '->' node ('->' node)*
-  //   node  ::= 'a' | 'b' | 'c' | ...
-  //
-  // Errors may be tolerated (e.g. s = "a b" produces an empty graph)
-  // but in such cases consider the behaviour as undefined.
+  //   graph  ::= fromto (';'  fromto)*
+  //           |  fromto ('\n' fromto)*
+  //   fromto ::= node '->' node (',' node)*
+  //   node   ::= symbol
   //////////////////////////////////////////////
-  def apply(s: String): SymbolGraph = {
-    def parseLine(one: String): SymbolGraph = {
-      val split0 = one.split("""\s*->\s*""")
-      val split1 = split0.map(_.trim)
-      val split2 = split1.filterNot(_.isEmpty)
-      val split3 = split2.filter(_.length == 1)
+  def apply(source: String): SymbolGraph = {
+    val fromtoArray = source.
+      replaceAll("""/\*.+?\*/""", ""). // comments (!)
+      split("\n|;").
+      map(_.trim).
+      filterNot(_.isEmpty)
 
-      @tailrec
-      def iterate(from: String, others: Iterator[String], graph: SymbolGraph): SymbolGraph = {
-        if(others.hasNext) {
-          val to = others.next()
-          iterate(to, others, graph + (Symbol(from), Symbol(to)))
-        }
-        else graph + Symbol(from)
-      }
+    def parseFromTo(fromto: String): SymbolGraph = {
+      val split = fromto.
+        split("->|→"). // Separate by "->"
+        map(_.trim).           // Trim results
+        filterNot(_.isEmpty)   // Keep only non empty strings
 
-      val split = split3
-      split.length match {
-        case 0 ⇒ Empty
-        case _ ⇒
-          val iterator = split.iterator
-          val from = iterator.next()
-          iterate(from, iterator, Empty)
+      split match {
+        case Array(from, to) ⇒
+          val fromSymbol = Symbol(from)
+          val toSymbols = to.
+            split(",").
+            map(_.trim).
+            filterNot(_.isEmpty).
+            map(Symbol(_)).
+            toSet
+
+          // The initial graph (zero element in foldLeft)
+          // is the one with the dependencies and then we
+          // create one empty mapping for each dependency
+          toSymbols.foldLeft(Empty ++ (fromSymbol, toSymbols))(_ + _)
       }
     }
 
-    val split0 = s.split("""\s*(;|,)\s*""")
-    val split = split0
-
-    split.map(parseLine).foldLeft(Empty)(_ ++ _)
+    fromtoArray.
+      map(parseFromTo).
+      foldLeft(Empty)(_ ++ _)
   }
+  
+  val AGraph: SymbolGraph = Empty +
+    ('A → 'B) /* 'A depends on 'B */ +
+    ('A → 'C) +
+    ('A → 'D) +
+    ('C → 'D)
 
-  implicit class DependableSymbol(val a: Symbol) extends AnyVal {
-    def depends(b: Symbol) = (a, b)
-    def ==>(b: Symbol) = (a, b)
-  }
-
-  val AGraph = Empty +
-    ('A ==> 'B) /* 'A depends on 'B */ +
-    ('A ==> 'C) + 
-    ('A ==> 'D) +
-    ('C ==> 'D)
-
-  val BGraph = Empty +
-    ('A ==> 'B) +
-    ('A ==> 'C) +
-    ('A ==> 'D) +
-    ('C ==> 'D) +
-    ('D ==> 'A)
+  val BGraphStr =
+    """
+      | A → B
+      | A → C
+      | A → D
+      | C → D
+      | D → A
+    """.stripMargin
+  val BGraph: SymbolGraph = SymbolGraph(BGraphStr)
 
   def main(args: Array[String]): Unit = {
     println("+======= A Graph =======")

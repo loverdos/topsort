@@ -58,60 +58,74 @@ class TopSort {
     graph: G,
     listener: TopSortListener[N]
   ): Boolean = {
-    val sorted = mutable.LinkedHashSet[N]()
+    // A node is immediately added to the `searchPath` if it does not exist
+    // there (otherwise we have a cycle)
     val searchPath = mutable.LinkedHashSet[N]()
 
-    def sortNodes(nodes: Iterator[N], level: Int): Boolean = {
-      if(nodes.hasNext) {
-        val node = nodes.next()
+    // A node is added to the sorted set only after its dependencies
+    // have been added to the sorted set
+    val sorted = mutable.LinkedHashSet[N]()
 
-        // Start checking a node.
-        // Checking ends in one of:
-        // 1. The node already exists in the sorted set
-        // 2. The node has already been searched, so we have a cyclic dependency
-        // 3. We can proceed searching the node and its dependencies
-        listener.onCheckNode(node, level)
+    def sortNodes(dependentOpt: Option[N], nodes: Iterator[N], level: Int): Boolean =
+      if(!nodes.hasNext)
+        true
+      else
+        sortNodeStep(dependentOpt, nodes.next(), nodes, level)
 
-        if(sorted.contains(node)) {
-          listener.onAlreadySorted(node, level)
-          return true
-        }
+    def sortNodeStep(dependentOpt: Option[N], node: N, remaining: Iterator[N], level: Int): Boolean = {
+      // Start checking a node.
+      // Checking ends in one of:
+      //   1. The node already exists in the sorted set
+      //   2. The node has already been searched, so we have a cyclic dependency
+      //   3. We can proceed searching the node and its dependencies
+      listener.onEnter(dependentOpt, node, level)
 
-        if(searchPath.contains(node)) {
-          // maybe we would like to add `node` to `searchPath`, so that
-          // when we print `searchPath` we see `node` on both ends
-          // but this is not possible: `searchPath` is a set and so
-          // `node` already exists there, it cannot be re-added.
-          listener.onCycle(searchPath, level)
-          return false
-        }
+      if(sorted.contains(node)) {
+        listener.onAlreadySorted(node, level)
 
-        searchPath += node
-        listener.onAddSearchPath(searchPath, node, level)
-
-        val dependencies = graphStructure.nodeDependencies(graph, node)
-
-        sortNodes(dependencies, level + 1) && {
-          sorted += node
-          listener.onAcceptSorted(node, level)
-
-          searchPath -= node
-          listener.onRemoveSearchPath(searchPath, node, level)
-
-          // proceed with the initial iterator
-          sortNodes(nodes, level)
-        }
+        // It is a subtle bug to just return true here and ignore the `remaining` nodes.
+        return sortNodes(dependentOpt, remaining, level)
       }
-      else true
+
+      if(searchPath.contains(node)) {
+        // maybe we would like to add `node` to `searchPath`, so that
+        // when we print `searchPath` we see `node` on both ends
+        // but this is not possible: `searchPath` is a set and so
+        // `node` already exists there, it cannot be re-added.
+        listener.onCycle(searchPath, level)
+        return false
+      }
+
+      searchPath += node
+      listener.onAddedToSearchPath(searchPath, node, level)
+
+      val dependencies = graphStructure.nodeDependencies(graph, node)
+
+      val dependencyResult = sortNodes(Some(node), dependencies, level + 1)
+      if(!dependencyResult) {
+        sorted.clear()
+        searchPath.clear()
+        return false
+      }
+
+      sorted += node
+      listener.onAddedToSorted(node, level)
+
+      searchPath -= node
+      listener.onRemovedFromSearchPath(searchPath, node, level)
+
+      // proceed with the remaining nodes
+      sortNodes(dependentOpt, remaining, level)
     }
 
     val nodes = graphStructure.nodes(graph)
 
-    val result = sortNodes(nodes, 0)
+    val result = sortNodes(None, nodes, 0)
     if(result)
       listener.onResultSorted(sorted)
     else
       listener.onResultCycle(searchPath)
+
     result
   }
 

@@ -36,6 +36,8 @@ final case class SimpleGraph[N](map: Map[N, Set[N]]) {
     SimpleGraph(newMap)
   }
 
+  def dependenciesOf(node: N): Set[N] = map.getOrElse(node, Set())
+
   def +(a: N): SimpleGraph[N] =
     if(map.contains(a))
       this
@@ -55,6 +57,23 @@ final case class SimpleGraph[N](map: Map[N, Set[N]]) {
 
     SimpleGraph(Map(newValue.toSeq:_*))
   }
+
+  def ++(fromto: (N, Set[N])): SimpleGraph[N] = {
+    val (from, to) = fromto
+    val newMap =
+      if(map.contains(from)) {
+        val oldValue = map(from)
+        val newValue = oldValue ++ to
+        map.updated(from, newValue)
+      }
+      else {
+        map.updated(from, to)
+      }
+
+    new SimpleGraph(newMap)
+  }
+
+  def allNodes: Set[N] = map.valuesIterator.foldLeft(map.keySet)(_ ++ _)
 
   def topSort(listener: TopSortListener[N]): Boolean = TopSort.sort(GraphStructure, this, listener)
 

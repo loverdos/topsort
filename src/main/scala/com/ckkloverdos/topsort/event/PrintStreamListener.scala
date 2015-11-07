@@ -24,23 +24,26 @@ import java.io.PrintStream
 class PrintStreamListener[N](out: PrintStream) extends TopSortListener[N] {
   def w(s: String, level: Int) = out.println((" " * (level * 2)) + s)
 
-  override def onCheckNode(node: N, level: Int) =
-    w(s"Check: $node", level)
+  private[this] def d(dependentOpt: Option[N]) =
+    dependentOpt.map(dependent ⇒ s" (← $dependent)").getOrElse("")
+
+  override def onEnter(dependentOpt: Option[N], node: N, level: Int) =
+    w(s"Enter: $node${d(dependentOpt)}", level)
 
   override def onCycle(path: Traversable[N], level: Int) =
     w(s"Cycle: ${path.mkString(" → ")}", level)
 
-  override def onAddSearchPath(path: Traversable[N], lastAddition: N, level: Int) =
-    w(s"Search path (+ $lastAddition): ${path.mkString(" → ")}", level)
+  override def onAddedToSearchPath(path: Traversable[N], addedNode: N, level: Int) =
+    w(s"Search path (+ $addedNode): ${path.mkString(" → ")}", level)
 
-  override def onRemoveSearchPath(path: Traversable[N], lastRemoval: N, level: Int) =
-    w(s"Search path (- $lastRemoval): ${path.mkString(" → ")}", level)
+  override def onRemovedFromSearchPath(path: Traversable[N], removedNode: N, level: Int) =
+    w(s"Search path (- $removedNode): ${path.mkString(" → ")}", level)
 
-  override def onAcceptSorted(node: N, level: Int) =
+  override def onAddedToSorted(node: N, level: Int) =
     w(s"ACCEPT <$node>", level)
 
   override def onAlreadySorted(node: N, level: Int): Unit =
-    w(s"Already sorted: $node", level)
+    w(s"Leave already sorted: $node", level)
 
   override def onResultSorted(sorted: Traversable[N]): Unit =
     w(s"SORTED: ${sorted.mkString(", ")}", 0)
