@@ -53,7 +53,11 @@ final case class TopSortCycle[N](path: Traversable[N]) extends TopSortResult[N]
  * Generalized, event-based topological sorter.
  */
 class TopSort {
-  def sort[G, N](graphStructure: GraphStructure[G, N], graph: G, listener: TopSortListener[N]): Boolean = {
+  def sort[G, N](
+    graphStructure: GraphStructure[G, N],
+    graph: G,
+    listener: TopSortListener[N]
+  ): Boolean = {
     val sorted = mutable.LinkedHashSet[N]()
     val searchPath = mutable.LinkedHashSet[N]()
 
@@ -61,15 +65,24 @@ class TopSort {
       if(nodes.hasNext) {
         val node = nodes.next()
 
+        // Start checking a node.
+        // Checking ends in one of:
+        // 1. The node already exists in the sorted set
+        // 2. The node has already been searched, so we have a cyclic dependency
+        // 3. We can proceed searching the node and its dependencies
+        listener.onCheckNode(node, level)
+
         if(sorted.contains(node)) {
           listener.onAlreadySorted(node, level)
           return true
         }
 
-        listener.onNewNode(node, level)
-
         if(searchPath.contains(node)) {
-          listener.onCycle(searchPath.toList, level)
+          // maybe we would like to add `node` to `searchPath`, so that
+          // when we print `searchPath` we see `node` on both ends
+          // but this is not possible: `searchPath` is a set and so
+          // `node` already exists there, it cannot be re-added.
+          listener.onCycle(searchPath, level)
           return false
         }
 
@@ -85,6 +98,7 @@ class TopSort {
           searchPath -= node
           listener.onRemoveSearchPath(searchPath, node, level)
 
+          // proceed with the initial iterator
           sortNodes(nodes, level)
         }
       }
@@ -92,6 +106,7 @@ class TopSort {
     }
 
     val nodes = graphStructure.nodes(graph)
+
     val result = sortNodes(nodes, 0)
     if(result)
       listener.onResultSorted(sorted)

@@ -24,8 +24,8 @@ import java.io.PrintStream
 class PrintStreamListener[N](out: PrintStream) extends TopSortListener[N] {
   def w(s: String, level: Int) = out.println((" " * (level * 2)) + s)
 
-  override def onNewNode(node: N, level: Int) =
-    w(s"New node: $node", level)
+  override def onCheckNode(node: N, level: Int) =
+    w(s"Check: $node", level)
 
   override def onCycle(path: Traversable[N], level: Int) =
     w(s"Cycle: ${path.mkString(" → ")}", level)
@@ -37,16 +37,16 @@ class PrintStreamListener[N](out: PrintStream) extends TopSortListener[N] {
     w(s"Search path (- $lastRemoval): ${path.mkString(" → ")}", level)
 
   override def onAcceptSorted(node: N, level: Int) =
-    w(s"<$node>", level)
+    w(s"ACCEPT <$node>", level)
 
   override def onAlreadySorted(node: N, level: Int): Unit =
     w(s"Already sorted: $node", level)
 
   override def onResultSorted(sorted: Traversable[N]): Unit =
-    w(s"Sorted: ${sorted.mkString(", ")}", 0)
+    w(s"SORTED: ${sorted.mkString(", ")}", 0)
 
   override def onResultCycle(path: Traversable[N]): Unit =
-    w(s"Cycle: ${path.mkString(", ")}", 0)
+    w(s"CYCLE: ${path.mkString(", ")}", 0)
 }
 
 object PrintStreamListener {

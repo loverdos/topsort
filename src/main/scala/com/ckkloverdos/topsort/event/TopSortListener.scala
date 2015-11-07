@@ -21,7 +21,7 @@ package event
  *
  */
 trait TopSortListener[N] {
-  def onNewNode(node: N, level: Int): Unit = {}
+  def onCheckNode(node: N, level: Int): Unit = {}
   def onCycle(path: Traversable[N], level: Int): Unit = {}
   def onAddSearchPath(path: Traversable[N], lastAddition: N, level: Int): Unit = {}
   def onRemoveSearchPath(path: Traversable[N], lastRemoval: N, level: Int): Unit = {}
@@ -36,8 +36,8 @@ object TopSortListener {
 }
 
 class TopSortListeners[N](listeners: TopSortListener[N]*) extends TopSortListener[N] {
-  override def onNewNode(node: N, level: Int): Unit =
-    listeners.foreach(_.onNewNode(node, level))
+  override def onCheckNode(node: N, level: Int): Unit =
+    listeners.foreach(_.onCheckNode(node, level))
 
   override def onCycle(path: Traversable[N], level: Int): Unit =
     listeners.foreach(_.onCycle(path, level))
