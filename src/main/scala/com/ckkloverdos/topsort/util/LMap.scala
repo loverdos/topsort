@@ -79,6 +79,8 @@ class LMap[N] private[util](
     acc
   }
 
+  def keySet: LSet[N] = keys
+
   def size: Int = map.size
 }
 

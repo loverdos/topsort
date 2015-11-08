@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package com.ckkloverdos.topsort.util
+package com.ckkloverdos.topsort
 
-import com.ckkloverdos.topsort.TopSortCycleException
 import com.ckkloverdos.topsort.event.{PrintStreamListener, TopSortListener}
+import com.ckkloverdos.topsort.util.{LTopSortPerNode, MLTopSortPerNode, SymbolGraph}
 import org.junit.{Assert, Test}
 
 import scala.annotation.tailrec
@@ -145,19 +145,19 @@ class SymbolGraphTest {
         andThen(lTopSortedListener).
         andThen(mlTopSortedListener)
     )
-    val lTopSorted = lTopSortedListener.topSortedMap
-    val mlTopSorted = mlTopSortedListener.topSortedMap
+    val lTopSortedMap = lTopSortedListener.topSortedMap
+    val mlTopSortedMap = mlTopSortedListener.topSortedMap
 
-    Assert.assertEquals(path.size, lTopSorted.allNodes.size)
-    Assert.assertEquals(mlTopSorted.size, lTopSorted.size)
+    Assert.assertEquals(path.size, lTopSortedMap.allNodes.size)
+    Assert.assertEquals(mlTopSortedMap.size, lTopSortedMap.size)
 
     val pathReport = path.mkString("[", ", ", "]")
     println("====================")
     println(pathReport)
 
     println("====================")
-    for { node ← lTopSorted.keys } {
-      val deps = lTopSorted(node)
+    for { node ← lTopSortedMap.keySet } {
+      val deps = lTopSortedMap(node)
       val depsReport = deps.mkString(", ")
       println(s"$node → $depsReport")
     }
