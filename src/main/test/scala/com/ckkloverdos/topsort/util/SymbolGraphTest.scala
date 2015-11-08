@@ -78,6 +78,7 @@ class SymbolGraphTest {
     assert(graph.dependenciesOf('A).size == 3, "graph.dependenciesOf('A).size == 3")
     assert(graph.dependenciesOf('B).size == 2, "graph.dependenciesOf('B).size == 2")
 
+    // A map of the direct dependencies (not top-sorted)
     val map = new mutable.LinkedHashMap[Symbol, mutable.LinkedHashSet[Symbol]]
     def add(from: Symbol, to: Symbol): Unit = {
       map.get(from) match {
@@ -122,5 +123,43 @@ class SymbolGraphTest {
     Assert.assertEquals(Set('A, 'A_1, 'A_2, 'A_3, 'B, 'B_1, 'B_2), map.keySet.toSet)
     Assert.assertEquals(Set('A_1, 'A_2, 'A_3), map('A))
     Assert.assertEquals(Set('B_1, 'B_2), map('B))
+  }
+
+  @Test def checkYabOrders(): Unit = {
+    val graphStr =
+      """
+        | /::fatjar   → /a::jar, /c::jar, /b::jar
+        | /a::jar     → /a::compile
+        | /b::jar     → /b::compile
+        | /c::jar     → /c::compile
+        | /c::compile → /b::compile, /a::compile
+      """.stripMargin
+
+    val graph = SymbolGraph(graphStr)
+
+    val lTopSortedListener = new LTopSortPerNode[Symbol]
+    val mlTopSortedListener = new MLTopSortPerNode[Symbol]
+
+    val path = graph.topSortEx(
+      PrintStreamListener.StdOut.
+        andThen(lTopSortedListener).
+        andThen(mlTopSortedListener)
+    )
+    val lTopSorted = lTopSortedListener.topSortedMap
+    val mlTopSorted = mlTopSortedListener.topSortedMap
+
+    Assert.assertEquals(path.size, lTopSorted.allNodes.size)
+    Assert.assertEquals(mlTopSorted.size, lTopSorted.size)
+
+    val pathReport = path.mkString("[", ", ", "]")
+    println("====================")
+    println(pathReport)
+
+    println("====================")
+    for { node ← lTopSorted.keys } {
+      val deps = lTopSorted(node)
+      val depsReport = deps.mkString(", ")
+      println(s"$node → $depsReport")
+    }
   }
 }

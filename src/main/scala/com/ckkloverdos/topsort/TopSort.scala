@@ -62,9 +62,10 @@ class TopSort {
     // there (otherwise we have a cycle)
     val searchPath = mutable.LinkedHashSet[N]()
 
-    // A node is added to the sorted set only after its dependencies
-    // have been added to the sorted set
-    val sorted = mutable.LinkedHashSet[N]()
+    // A node is added to the `topSorted` (= topologically sorted) set
+    // only after its dependencies have been added to the `topSorted` set
+    // and they do not introduce a cycle
+    val topSorted = mutable.LinkedHashSet[N]()
 
     def sortNodes(dependents: List[N], nodes: Iterator[N], level: Int): Boolean =
       if(!nodes.hasNext)
@@ -75,46 +76,54 @@ class TopSort {
     def sortNodeStep(dependents: List[N], node: N, remaining: Iterator[N], level: Int): Boolean = {
       // Start checking a node.
       // Checking ends in one of:
-      //   1. The node already exists in the sorted set
+      //   1. The node already exists in the `topSorted` set
       //   2. The node has already been searched, so we have a cyclic dependency
-      //   3. We can proceed searching the node and its dependencies
+      //   3. Checking the dependencies result in a cycle
+      //   4. We can proceed searching the remaining nodes (as given by the graph structure)
       listener.onEnter(dependents, node, level)
 
-      if(sorted.contains(node)) {
-        listener.onAlreadySorted(node, level)
+      // 1. 1st exit point, as mentioned above
+      if(topSorted.contains(node)) {
+        listener.onAlreadySorted(dependents, node, level)
 
         // It is a bug to just return true here and ignore the `remaining` nodes.
         return sortNodes(dependents, remaining, level)
       }
 
+      // 2. 2nd exit point, as mentioned above
       if(searchPath.contains(node)) {
         // maybe we would like to add `node` to `searchPath`, so that
         // when we print `searchPath` we see `node` on both ends
         // but this is not possible: `searchPath` is a set and so
         // `node` already exists there, it cannot be re-added.
+
         listener.onCycle(searchPath, level)
         return false
       }
 
+      // ADD to search path, since it has not been topSorted and we are not in a cycle
       searchPath += node
-      listener.onAddedToSearchPath(searchPath, node, level)
+      listener.onAddedToSearchPath(searchPath, dependents, node, level)
 
       val dependencies = graphStructure.nodeDependencies(graph, node)
 
+      // Process the dependencies first
       val dependencyResult = sortNodes(node :: dependents, dependencies, level + 1)
+      // 3. 3rd exit point, as mentioned above
       if(!dependencyResult) {
-        sorted.clear()
-        searchPath.clear()
         return false
       }
 
-      sorted += node
+      // ADD to `topSorted` set, after we have successfully (== no cycle)
+      // processed (= topologically sorted) the dependencies
+      topSorted += node
       listener.onAddedToSorted(dependents, node, level)
 
       searchPath -= node
       listener.onRemovedFromSearchPath(searchPath, node, level)
 
       // proceed with the remaining nodes
+      // 4. 4th exit point, as mentioned above
       sortNodes(dependents, remaining, level)
     }
 
@@ -122,7 +131,7 @@ class TopSort {
 
     val result = sortNodes(Nil, nodes, 0)
     if(result)
-      listener.onResultSorted(sorted)
+      listener.onResultSorted(topSorted)
     else
       listener.onResultCycle(searchPath)
 

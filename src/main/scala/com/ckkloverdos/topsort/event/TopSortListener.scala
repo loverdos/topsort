@@ -23,7 +23,7 @@ package event
 trait TopSortListener[N] {
   def onEnter(dependents: List[N], node: N, level: Int): Unit = {}
 
-  def onAlreadySorted(node: N, level: Int): Unit = {}
+  def onAlreadySorted(dependents: List[N], node: N, level: Int): Unit = {}
 
   /**
     * Notifies that the `path` leads to a cycle and, as a consequence, the
@@ -43,7 +43,7 @@ trait TopSortListener[N] {
     * @param addedNode
     * @param level
     */
-  def onAddedToSearchPath(path: Traversable[N], addedNode: N, level: Int): Unit = {}
+  def onAddedToSearchPath(path: Traversable[N], dependents: List[N], addedNode: N, level: Int): Unit = {}
 
   def onRemovedFromSearchPath(path: Traversable[N], removedNode: N, level: Int): Unit = {}
 
@@ -52,6 +52,12 @@ trait TopSortListener[N] {
     * This method is called at most once for every node in the graph.
     * It is called exactly once for each node in the graph if the graph can be
     * topologically sorted, that is it does not contain a cycle.
+    *
+    * <p/>
+    * Do not rely on this method only in order to record the dependents of a node, since
+    * the dependents list can be empty. Why it may be empty is related to the graph structure
+    * that provides the nodes in the first place.
+    *
     * @param dependents
     * @param node
     * @param level
@@ -89,8 +95,8 @@ class TopSortListeners[N](listeners: TopSortListener[N]*) extends TopSortListene
   override def onCycle(path: Traversable[N], level: Int): Unit =
     listeners.foreach(_.onCycle(path, level))
 
-  override def onAddedToSearchPath(path: Traversable[N], addedNode: N, level: Int): Unit =
-    listeners.foreach(_.onAddedToSearchPath(path, addedNode, level))
+  override def onAddedToSearchPath(path: Traversable[N], dependents: List[N], addedNode: N, level: Int): Unit =
+    listeners.foreach(_.onAddedToSearchPath(path, dependents, addedNode, level))
 
   override def onRemovedFromSearchPath(path: Traversable[N], removedNode: N, level: Int): Unit =
     listeners.foreach(_.onRemovedFromSearchPath(path, removedNode, level))
@@ -98,8 +104,8 @@ class TopSortListeners[N](listeners: TopSortListener[N]*) extends TopSortListene
   override def onAddedToSorted(dependents: List[N], node: N, level: Int): Unit =
     listeners.foreach(_.onAddedToSorted(dependents, node, level))
 
-  override def onAlreadySorted(node: N, level: Int): Unit =
-    listeners.foreach(_.onAlreadySorted(node, level))
+  override def onAlreadySorted(dependents: List[N], node: N, level: Int): Unit =
+    listeners.foreach(_.onAlreadySorted(dependents, node, level))
 
   override def onResultSorted(sorted: Traversable[N]): Unit =
     listeners.foreach(_.onResultSorted(sorted))

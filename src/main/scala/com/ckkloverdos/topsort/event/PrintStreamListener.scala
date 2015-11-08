@@ -36,7 +36,7 @@ class PrintStreamListener[N](out: PrintStream) extends TopSortListener[N] {
   override def onCycle(path: Traversable[N], level: Int) =
     w(s"Cycle: ${path.mkString(" → ")}", level)
 
-  override def onAddedToSearchPath(path: Traversable[N], addedNode: N, level: Int) =
+  override def onAddedToSearchPath(path: Traversable[N], dependents: List[N], addedNode: N, level: Int) =
     w(s"Search path (+ $addedNode): ${path.mkString(" → ")}", level)
 
   override def onRemovedFromSearchPath(path: Traversable[N], removedNode: N, level: Int) =
@@ -45,7 +45,7 @@ class PrintStreamListener[N](out: PrintStream) extends TopSortListener[N] {
   override def onAddedToSorted(dependents: List[N], node: N, level: Int) =
     w(s"ACCEPT <$node>${d(dependents)}", level)
 
-  override def onAlreadySorted(node: N, level: Int): Unit =
+  override def onAlreadySorted(dependents: List[N], node: N, level: Int): Unit =
     w(s"Leave already sorted: $node", level)
 
   override def onResultSorted(sorted: Traversable[N]): Unit =
