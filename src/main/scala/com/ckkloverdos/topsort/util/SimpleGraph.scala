@@ -17,121 +17,33 @@
 package com.ckkloverdos.topsort.util
 
 import com.ckkloverdos.topsort.event.TopSortListener
-import com.ckkloverdos.topsort.util.SimpleGraph.LSet
 import com.ckkloverdos.topsort.{GraphStructure, TopSort, TopSortResult}
 
 import scala.language.implicitConversions
 
-object SimpleGraph {
-  class LSet[N] private(
-    private[util] val set: Set[N],
-    private[util] val ordered: Vector[N]
-  ) {
-    def +(n: N): LSet[N] =
-      if(set(n))
-        this
-      else
-        new LSet(set + n, ordered :+ n)
-
-    def ++(that: Seq[N]): LSet[N] = {
-      var acc = this
-      for {
-        item ← that if !this(item)
-      } {
-        acc += item
-      }
-      acc
-    }
-
-    def ++(that: LSet[N]): LSet[N] = this ++ that.toSeq
-
-    def -(n: N): LSet[N] =
-      if(set(n))
-        new LSet(set - n, ordered.filterNot(_ == n))
-      else
-        this
-
-    def apply(n: N): Boolean = set(n)
-
-    def foreach(f: N ⇒ Unit) = ordered.foreach(f)
-    def map[S](f: N ⇒ S): LSet[S] = new LSet(set.map(f), ordered.map(f))
-    def foldLeft[Z](initial: Z)(f: (Z, N) ⇒ Z): Z = ordered.foldLeft(initial)(f)
-
-    def size = ordered.size
-
-    def toSeq: collection.immutable.Seq[N] = ordered
-    def iterator: Iterator[N] = ordered.iterator
-  }
-
-  object LSet {
-    final def apply[N](): LSet[N] = new LSet[N](Set(), Vector())
-  }
-
-  final def apply[N](): SimpleGraph[N] = new SimpleGraph[N](Map(), LSet())
-}
 
 /**
  * A simple immutable graph representation as a map of nodes to its dependencies.
  */
-final class SimpleGraph[N] private[util](
-  private[util] val map: Map[N, LSet[N]],
-  private[util] val keys: LSet[N]
-) {
-  private def get(from: N): LSet[N] = map.getOrElse(from, LSet())
+final class SimpleGraph[N] private[util](val map: LMap[N]) {
+  def +(fromto: (N, N)): SimpleGraph[N] = new SimpleGraph(map + fromto)
 
-  def +(fromto: (N, N)): SimpleGraph[N] = {
-    val (from, to) = fromto
-    val newSet = get(from) + to
-    val newMap = map.updated(from, newSet)
-    val newKeys = keys + from
-
-    new SimpleGraph(newMap, newKeys)
-  }
-
-  def dependenciesOf(node: N): LSet[N] = get(node)
+  def dependenciesOf(node: N): LSet[N] = map.dependenciesOf(node)
 
   def +(a: N): SimpleGraph[N] =
     if(map.contains(a))
       this
-    else {
-      val newMap = map.updated(a, LSet())
-      val newKeys = keys + a
-      new SimpleGraph(newMap, newKeys)
-    }
+    else
+      new SimpleGraph[N](map + a)
 
-  def ++(that: SimpleGraph[N]): SimpleGraph[N] = {
-    val keys = this.keys ++ that.keys
-    val fromTos: LSet[(N, LSet[N])] = // all the keys and their concatenated LSet values
-      for(key ← keys) yield {
-        val thisSet = this.get(key)
-        val thatSet = that.get(key)
-
-        (key, thisSet ++ thatSet)
-      }
-
-    val newKeys = fromTos.map(_._1)
-    val newMap  = Map(fromTos.toSeq:_*)
-
-    new SimpleGraph(newMap, newKeys)
-  }
+  def ++(that: SimpleGraph[N]): SimpleGraph[N] = new SimpleGraph(this.map ++ that.map)
 
   def ++(fromto: (N, LSet[N])): SimpleGraph[N] = {
-    val (from, to) = fromto
-    val that = new SimpleGraph(Map(from → to), LSet() + from)
-
+    val that = new SimpleGraph(LMap() ++ fromto)
     this ++ that
   }
 
-  def allNodes: LSet[N] = {
-    var acc = keys
-    for {
-      from ← keys
-    } {
-      val tos = map(from)
-      acc ++= tos
-    }
-    acc
-  }
+  def allNodes: LSet[N] = map.allNodes
 
   def topSort(listener: TopSortListener[N]): Boolean = TopSort.sort(GraphStructure, this, listener)
 
@@ -149,3 +61,6 @@ final class SimpleGraph[N] private[util](
   }
 }
 
+object SimpleGraph {
+  final def apply[N](): SimpleGraph[N] = new SimpleGraph[N](LMap())
+}

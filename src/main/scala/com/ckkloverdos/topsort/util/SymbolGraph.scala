@@ -17,7 +17,6 @@
 package com.ckkloverdos.topsort.util
 
 import com.ckkloverdos.topsort.event.PrintStreamListener
-import com.ckkloverdos.topsort.util.SimpleGraph.LSet
 
 import scala.language.implicitConversions
 
