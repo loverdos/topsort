@@ -17,6 +17,7 @@
 package com.ckkloverdos.topsort.util
 
 import com.ckkloverdos.topsort.event.PrintStreamListener
+import com.ckkloverdos.topsort.util.SimpleGraph.LSet
 
 import scala.language.implicitConversions
 
@@ -27,7 +28,8 @@ import scala.language.implicitConversions
  */
 object SymbolGraph {
   final type SymbolGraph = SimpleGraph[Symbol]
-  final val Empty: SymbolGraph = SimpleGraph[Symbol](Map())
+
+  def Empty: SymbolGraph = SimpleGraph[Symbol]()
 
   //////////////////////////////////////////////
   // ~ approximate implementation ~
@@ -53,17 +55,18 @@ object SymbolGraph {
       split match {
         case Array(from, to) ⇒
           val fromSymbol = Symbol(from)
-          val toSymbols = to.
+          val toSymbols = LSet[Symbol]() ++ to.
             split(",").
             map(_.trim).
             filterNot(_.isEmpty).
-            map(Symbol(_)).
-            toSet
+            map(Symbol(_))
+
+          val initialGraph: SymbolGraph = Empty ++ (fromSymbol, toSymbols)
 
           // The initial graph (zero element in foldLeft)
           // is the one with the dependencies and then we
-          // create one empty mapping for each dependency
-          toSymbols.foldLeft(Empty ++ (fromSymbol, toSymbols))(_ + _)
+          // create one empty mapping for each dependency (`toSymbols`).
+          toSymbols.foldLeft(initialGraph)(_ + _)
       }
     }
 
@@ -73,10 +76,10 @@ object SymbolGraph {
   }
   
   val AGraph: SymbolGraph = Empty +
-    ('A → 'B) /* 'A depends on 'B */ +
     ('A → 'C) +
+          ('C → 'D) +
     ('A → 'D) +
-    ('C → 'D)
+          ('D → 'B)
 
   val BGraphStr =
     """
@@ -89,12 +92,13 @@ object SymbolGraph {
   val BGraph: SymbolGraph = SymbolGraph(BGraphStr)
 
   def main(args: Array[String]): Unit = {
+    println(AGraph)
     println("+======= A Graph =======")
     val printListener = PrintStreamListener.StdOut[Symbol]
     println(AGraph.topSort(printListener))
     println("-======= A Graph =======")
-    println("+======= B Graph =======")
-    println(BGraph.topSortResult(printListener))
-    println("-======= B Graph =======")
+//    println("+======= B Graph =======")
+//    println(BGraph.topSortResult(printListener))
+//    println("-======= B Graph =======")
   }
 }

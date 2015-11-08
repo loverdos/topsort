@@ -66,25 +66,25 @@ class TopSort {
     // have been added to the sorted set
     val sorted = mutable.LinkedHashSet[N]()
 
-    def sortNodes(dependentOpt: Option[N], nodes: Iterator[N], level: Int): Boolean =
+    def sortNodes(dependents: List[N], nodes: Iterator[N], level: Int): Boolean =
       if(!nodes.hasNext)
         true
       else
-        sortNodeStep(dependentOpt, nodes.next(), nodes, level)
+        sortNodeStep(dependents, nodes.next(), nodes, level)
 
-    def sortNodeStep(dependentOpt: Option[N], node: N, remaining: Iterator[N], level: Int): Boolean = {
+    def sortNodeStep(dependents: List[N], node: N, remaining: Iterator[N], level: Int): Boolean = {
       // Start checking a node.
       // Checking ends in one of:
       //   1. The node already exists in the sorted set
       //   2. The node has already been searched, so we have a cyclic dependency
       //   3. We can proceed searching the node and its dependencies
-      listener.onEnter(dependentOpt, node, level)
+      listener.onEnter(dependents, node, level)
 
       if(sorted.contains(node)) {
         listener.onAlreadySorted(node, level)
 
-        // It is a subtle bug to just return true here and ignore the `remaining` nodes.
-        return sortNodes(dependentOpt, remaining, level)
+        // It is a bug to just return true here and ignore the `remaining` nodes.
+        return sortNodes(dependents, remaining, level)
       }
 
       if(searchPath.contains(node)) {
@@ -101,7 +101,7 @@ class TopSort {
 
       val dependencies = graphStructure.nodeDependencies(graph, node)
 
-      val dependencyResult = sortNodes(Some(node), dependencies, level + 1)
+      val dependencyResult = sortNodes(node :: dependents, dependencies, level + 1)
       if(!dependencyResult) {
         sorted.clear()
         searchPath.clear()
@@ -109,18 +109,18 @@ class TopSort {
       }
 
       sorted += node
-      listener.onAddedToSorted(node, level)
+      listener.onAddedToSorted(dependents, node, level)
 
       searchPath -= node
       listener.onRemovedFromSearchPath(searchPath, node, level)
 
       // proceed with the remaining nodes
-      sortNodes(dependentOpt, remaining, level)
+      sortNodes(dependents, remaining, level)
     }
 
     val nodes = graphStructure.nodes(graph)
 
-    val result = sortNodes(None, nodes, 0)
+    val result = sortNodes(Nil, nodes, 0)
     if(result)
       listener.onResultSorted(sorted)
     else

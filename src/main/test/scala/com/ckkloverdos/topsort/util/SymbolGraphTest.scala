@@ -21,6 +21,7 @@ import com.ckkloverdos.topsort.event.{PrintStreamListener, TopSortListener}
 import org.junit.{Assert, Test}
 
 import scala.annotation.tailrec
+import scala.collection.mutable
 
 /**
  *
@@ -65,7 +66,7 @@ class SymbolGraphTest {
     }
   }
 
-  @Test def checkDependent(): Unit = {
+  @Test def checkDependents(): Unit = {
     val graphStr =
       """
         | A -> A_1, A_2, A_3
@@ -77,25 +78,49 @@ class SymbolGraphTest {
     assert(graph.dependenciesOf('A).size == 3, "graph.dependenciesOf('A).size == 3")
     assert(graph.dependenciesOf('B).size == 2, "graph.dependenciesOf('B).size == 2")
 
+    val map = new mutable.LinkedHashMap[Symbol, mutable.LinkedHashSet[Symbol]]
+    def add(from: Symbol, to: Symbol): Unit = {
+      map.get(from) match {
+        case Some(toSet) ⇒ toSet += to
+        case None ⇒
+          val toSet = new mutable.LinkedHashSet[Symbol]
+          toSet += to
+          map(from) = toSet
+      }
+    }
+    def addOne(node: Symbol): Unit = {
+      map.get(node) match {
+        case None ⇒ map(node) = new mutable.LinkedHashSet[Symbol]
+        case _ ⇒
+      }
+    }
+
     val listener = new TopSortListener[Symbol] {
-      override def onEnter(dependentOpt: Option[Symbol], node: Symbol, level: Int): Unit = {
-        dependentOpt match {
-          case None ⇒
-          case Some(dependent) ⇒
-            val dependentName = dependent.name
-            val nodeName = node.name
-            assert(nodeName.startsWith(dependentName + "_"))
+      override def onEnter(dependents: List[Symbol], node: Symbol, level: Int): Unit = {
+        for(dependent ← dependents) {
+          add(dependent, node)
+        }
+        addOne(node)
+      }
+
+      override def onAddedToSorted(dependents: List[Symbol], node: Symbol, level: Int): Unit = {
+        for(dependent ← dependents) {
+          add(dependent, node)
         }
       }
     }
 
     val path = graph.topSortEx(PrintStreamListener.StdOut.andThen(listener))
-    val sortedNodes = path.toSet
+    val sortedNodes = path.to[mutable.LinkedHashSet]
     val allNodes = graph.allNodes
     for {
       node ← allNodes
     } {
       assert(sortedNodes.contains(node), s"sortedNodes.contains($node)")
     }
+
+    Assert.assertEquals(Set('A, 'A_1, 'A_2, 'A_3, 'B, 'B_1, 'B_2), map.keySet.toSet)
+    Assert.assertEquals(Set('A_1, 'A_2, 'A_3), map('A))
+    Assert.assertEquals(Set('B_1, 'B_2), map('B))
   }
 }
