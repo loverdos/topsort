@@ -17,7 +17,7 @@
 package com.ckkloverdos.topsort
 
 import com.ckkloverdos.topsort.event.{PrintStreamListener, TopSortListener}
-import com.ckkloverdos.topsort.util.{LTopSortPerNode, MLTopSortPerNode, SymbolGraph}
+import com.ckkloverdos.topsort.util.{LSet, LTopSortPerNode, MLTopSortPerNode, SymbolGraph}
 import org.junit.{Assert, Test}
 
 import scala.annotation.tailrec
@@ -75,8 +75,8 @@ class SymbolGraphTest {
 
     val graph = SymbolGraph(graphStr)
 
-    assert(graph.dependenciesOf('A).size == 3, "graph.dependenciesOf('A).size == 3")
-    assert(graph.dependenciesOf('B).size == 2, "graph.dependenciesOf('B).size == 2")
+    assert(graph.dependenciesOf('A).size == 3, "graph.getOrEmpty('A).size == 3")
+    assert(graph.dependenciesOf('B).size == 2, "graph.getOrEmpty('B).size == 2")
 
     // A map of the direct dependencies (not top-sorted)
     val map = new mutable.LinkedHashMap[Symbol, mutable.LinkedHashSet[Symbol]]
@@ -133,6 +133,7 @@ class SymbolGraphTest {
         | /b::jar     → /b::compile
         | /c::jar     → /c::compile
         | /c::compile → /b::compile, /a::compile
+        | /c::fatjar  → /c::jar
       """.stripMargin
 
     val graph = SymbolGraph(graphStr)
@@ -141,15 +142,12 @@ class SymbolGraphTest {
     val mlTopSortedListener = new MLTopSortPerNode[Symbol]
 
     val path = graph.topSortEx(
-      PrintStreamListener.StdOut.
+      PrintStreamListener.StdOut[Symbol].
         andThen(lTopSortedListener).
         andThen(mlTopSortedListener)
     )
     val lTopSortedMap = lTopSortedListener.topSortedMap
     val mlTopSortedMap = mlTopSortedListener.topSortedMap
-
-    Assert.assertEquals(path.size, lTopSortedMap.allNodes.size)
-    Assert.assertEquals(mlTopSortedMap.size, lTopSortedMap.size)
 
     val pathReport = path.mkString("[", ", ", "]")
     println("====================")
@@ -160,6 +158,26 @@ class SymbolGraphTest {
       val deps = lTopSortedMap(node)
       val depsReport = deps.mkString(", ")
       println(s"$node → $depsReport")
+    }
+
+    Assert.assertEquals(path.size, lTopSortedMap.allNodes.size)
+    Assert.assertEquals(mlTopSortedMap.size, lTopSortedMap.size)
+
+    // Every topsorted path must start with a node that depends on no other
+    for { node ←  lTopSortedMap.keySet } {
+      val topSortedDeps = lTopSortedMap(node)
+
+      topSortedDeps.toSeq.headOption match {
+        case None ⇒
+        case Some(first) ⇒
+          Assert.assertEquals(true, lTopSortedMap.contains(node))
+          val firstDeps = lTopSortedMap(first)
+          Assert.assertEquals(
+            s"Every topsorted path must end in node that depends on no other. Offending node: $first",
+            LSet[Symbol](),
+            firstDeps
+          )
+      }
     }
   }
 }

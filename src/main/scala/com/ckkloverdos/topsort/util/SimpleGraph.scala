@@ -28,7 +28,7 @@ import scala.language.implicitConversions
 final class SimpleGraph[N] private[util](val map: LMap[N]) {
   def +(fromto: (N, N)): SimpleGraph[N] = new SimpleGraph(map + fromto)
 
-  def dependenciesOf(node: N): LSet[N] = map.dependenciesOf(node)
+  def dependenciesOf(node: N): LSet[N] = map.getOrEmpty(node)
 
   def +(a: N): SimpleGraph[N] =
     if(map.contains(a))

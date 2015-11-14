@@ -46,17 +46,29 @@ class LSet[N] private(
 
   def apply(n: N): Boolean = set(n)
 
-  def foreach(f: N ⇒ Unit) = ordered.foreach(f)
+  def foreach[U](f: N ⇒ U) = ordered.foreach(f)
   def map[S](f: N ⇒ S): LSet[S] = new LSet(set.map(f), ordered.map(f))
   def foldLeft[Z](initial: Z)(f: (Z, N) ⇒ Z): Z = ordered.foldLeft(initial)(f)
 
   def size = ordered.size
 
+  def headOpt: Option[N] = ordered.headOption
   def toSeq: collection.immutable.Seq[N] = ordered
   def iterator: Iterator[N] = ordered.iterator
+  def isEmpty: Boolean = ordered.isEmpty
 
   def mkString(sep: String) = ordered.mkString(sep)
   def mkString(start: String, sep: String, end: String) = ordered.mkString(start, sep, end)
+
+  override def hashCode(): Int = ordered.hashCode()
+
+  override def equals(obj: scala.Any): Boolean =
+    obj match {
+      case that: LSet[_] ⇒ this.ordered == that.ordered
+      case _ ⇒ false
+    }
+
+  override def toString: String = "LSet(" + ordered.mkString(", ") + ")"
 }
 
 object LSet {

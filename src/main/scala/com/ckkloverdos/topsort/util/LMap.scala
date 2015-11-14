@@ -20,13 +20,11 @@ class LMap[N] private[util](
   private[util] val map: Map[N, LSet[N]],
   private[util] val keys: LSet[N]
 ) {
-  private def get(from: N): LSet[N] = map.getOrElse(from, LSet())
-
   def contains(n: N) = map.contains(n)
 
   def +(fromto: (N, N)): LMap[N] = {
     val (from, to) = fromto
-    val newSet = get(from) + to
+    val newSet = getOrEmpty(from) + to
     val newMap = map.updated(from, newSet)
     val newKeys = keys + from
 
@@ -46,8 +44,8 @@ class LMap[N] private[util](
     val keys = this.keys ++ that.keys
     val fromTos: LSet[(N, LSet[N])] = // all the keys and their concatenated LSet values
       for(key ← keys) yield {
-        val thisSet = this.get(key)
-        val thatSet = that.get(key)
+        val thisSet = this.getOrEmpty(key)
+        val thatSet = that.getOrEmpty(key)
 
         (key, thisSet ++ thatSet)
       }
@@ -65,8 +63,15 @@ class LMap[N] private[util](
     this ++ that
   }
 
+  def updated(from: N, tos: LSet[N]): LMap[N] = {
+    val newMap = map.updated(from, tos)
+    val newKeys = if(map.contains(from)) keys else keys + from
+    new LMap(newMap, newKeys)
+  }
+
   def apply(n: N): LSet[N] = map(n)
-  def dependenciesOf(node: N): LSet[N] = get(node)
+  def get(n: N): Option[LSet[N]] = map.get(n)
+  def getOrEmpty(n: N): LSet[N] = map.getOrElse(n, LSet())
 
   def allNodes: LSet[N] = {
     var acc = keys
@@ -82,6 +87,23 @@ class LMap[N] private[util](
   def keySet: LSet[N] = keys
 
   def size: Int = map.size
+
+  def foreach[U](f: (N, LSet[N]) ⇒ U): Unit =
+    for {
+      dependent ← keys
+    } {
+      f(dependent, this(dependent))
+    }
+
+  override def hashCode(): Int = map.hashCode() * 31 + keys.hashCode()
+
+  override def equals(obj: scala.Any): Boolean =
+    obj match {
+      case that: LMap[_] ⇒ this.map == that.map
+      case _ ⇒ false
+    }
+
+  override def toString: String = "LMap(" + keySet.map(k ⇒ s"$k → ${map(k)}").mkString(", ") + ")"
 }
 
 object LMap {
