@@ -173,7 +173,7 @@ class SymbolGraphTest {
           Assert.assertEquals(true, lTopSortedMap.contains(node))
           val firstDeps = lTopSortedMap(first)
           Assert.assertEquals(
-            s"Every topsorted path must end in node that depends on no other. Offending node: $first",
+            s"Every topsorted path must start with a node that depends on no other. Offending node: $first",
             LSet[Symbol](),
             firstDeps
           )

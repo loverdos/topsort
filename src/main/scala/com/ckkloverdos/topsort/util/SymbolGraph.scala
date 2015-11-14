@@ -18,8 +18,6 @@ package com.ckkloverdos.topsort.util
 
 import com.ckkloverdos.topsort.event.PrintStreamListener
 
-import scala.language.implicitConversions
-
 /**
  * Convenience methods to create a graph of symbols from a simple
  * textual representation.
