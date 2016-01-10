@@ -24,6 +24,22 @@ trait TopSortListener[N] {
   def onEnter(dependents: List[N], node: N, level: Int): Unit = {}
 
   /**
+    *
+    * @param dependents The parent node hierarchy.
+    * @param node The `node` of interest.
+    * @param exitCause
+    * @param searchPath The current search path.
+    * @param level The level/depth in the search DAG. Visiting the dependent nodes increases the level.
+    */
+  def onExit(
+    dependents: List[N],
+    node: N,
+    exitCause: ExitCause,
+    searchPath: Traversable[N],
+    level: Int
+  ): Unit = {}
+
+  /**
     * Notifies that the algorithm begins processing the `dependencies` of the `node`.
     */
   def onNodeDependenciesBegin(dependents: List[N], node: N, dependencies: Iterator[N], level: Int): Unit = {}
@@ -34,27 +50,6 @@ trait TopSortListener[N] {
     * `result` is `false` (but the algorithm has not finished yet).
     */
   def onNodeDependenciesEnd(dependents: List[N], node: N, result: Boolean, level: Int): Unit = {}
-
-  /**
-    * Notifies that the `node` has already been topsorted and, as a consequence, no further
-    * processing will take place regarding the `node` and its dependencies.
-    * This means the `node` (and its dependencies) has been successfully
-    * searched in the past and no cycles have been detected.
-    * 
-    * @param dependents The parent node hierarchy.
-    * @param node The `node` of interest.
-    * @param level The level/depth in the search DAG. Visiting the dependent nodes increases the level.
-    */
-  def onAlreadySorted(dependents: List[N], node: N, level: Int): Unit = {}
-
-  /**
-    * Notifies that the `path` leads to a cycle and, as a consequence, the
-    * topologically sorting procedure is about to end.
-    *
-    * @param path
-    * @param level
-    */
-  def onCycle(path: Traversable[N], level: Int): Unit = {}
 
   /**
     * Notifies that the algorithm proceeds with the given `node`, that is
@@ -68,23 +63,6 @@ trait TopSortListener[N] {
   def onAddedToSearchPath(path: Traversable[N], dependents: List[N], addedNode: N, level: Int): Unit = {}
 
   def onRemovedFromSearchPath(path: Traversable[N], removedNode: N, level: Int): Unit = {}
-
-  /**
-    * Notifies that the `node` has been added to the collection of the already sorted nodes.
-    * This method is called at most once for every node in the graph.
-    * It is called exactly once for each node in the graph if the graph can be
-    * topologically sorted, that is it does not contain a cycle.
-    *
-    * <p/>
-    * Do not rely on this method only in order to record the dependents of a node, since
-    * the dependents list can be empty. Why it may be empty is related to the graph structure
-    * that provides the nodes in the first place.
-    *
-    * @param dependents
-    * @param node
-    * @param level
-    */
-  def onAddedToSorted(dependents: List[N], node: N, level: Int): Unit = {}
 
   /**
     * Notifies that topological sorting has completed in success.

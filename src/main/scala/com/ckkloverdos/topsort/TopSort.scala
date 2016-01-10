@@ -16,7 +16,7 @@
 
 package com.ckkloverdos.topsort
 
-import com.ckkloverdos.topsort.event.{TopSortListeners, ResultListener, TopSortListener}
+import com.ckkloverdos.topsort.event.{ExitCause, TopSortListeners, ResultListener, TopSortListener}
 
 import scala.collection.mutable
 
@@ -55,7 +55,7 @@ class TopSort {
 
       // 1. 1st exit point, as mentioned above
       if(topSorted.contains(node)) {
-        listener.onAlreadySorted(dependents, node, level)
+        listener.onExit(dependents, node, ExitCause.AlreadySorted, searchPath, level)
 
         // It is a bug to just return true here and ignore the `remaining` nodes.
         return sortNodes(dependents, remaining, level)
@@ -68,7 +68,7 @@ class TopSort {
         // but this is not possible: `searchPath` is a set and so
         // `node` already exists there, it cannot be re-added.
 
-        listener.onCycle(searchPath, level)
+        listener.onExit(dependents, node, ExitCause.Cycle, searchPath, level)
         return false
       }
 
@@ -90,20 +90,25 @@ class TopSort {
 
       // Notify that we have ended processing the dependencies of the node
       // also informing of the result
-      listener.onNodeDependenciesEnd(dependents1, node, dependencyResult, level)
+      listener.onNodeDependenciesEnd(dependents1, node, dependencyResult, level1)
+
+      def removeFromSearchPath(): Unit = {
+        searchPath -= node
+        listener.onRemovedFromSearchPath(searchPath, node, level)
+      }
 
       // 3. 3rd exit point, as mentioned above
       if(!dependencyResult) {
+        removeFromSearchPath()
+        listener.onExit(dependents, node, ExitCause.DependencyCycle, searchPath, level)
         return false
       }
 
       // ADD to `topSorted` set, after we have successfully (== no cycle)
       // processed (= topologically sorted) the dependencies
       topSorted += node
-      listener.onAddedToSorted(dependents, node, level)
-
-      searchPath -= node
-      listener.onRemovedFromSearchPath(searchPath, node, level)
+      removeFromSearchPath()
+      listener.onExit(dependents, node, ExitCause.Sorted, searchPath, level)
 
       // proceed with the remaining nodes
       // 4. 4th exit point, as mentioned above

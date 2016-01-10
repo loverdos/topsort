@@ -16,7 +16,7 @@
 
 package com.ckkloverdos.topsort
 
-import com.ckkloverdos.topsort.event.{PrintStreamListener, TopSortListener}
+import com.ckkloverdos.topsort.event.{ExitCause, PrintStreamListener, TopSortListener}
 import com.ckkloverdos.topsort.util.{LSet, LTopSortPerNode, MLTopSortPerNode, SymbolGraph}
 import org.junit.{Assert, Test}
 
@@ -104,9 +104,20 @@ class SymbolGraphTest {
         addOne(node)
       }
 
-      override def onAddedToSorted(dependents: List[Symbol], node: Symbol, level: Int): Unit = {
-        for(dependent ← dependents) {
-          add(dependent, node)
+      override def onExit(
+        dependents: List[Symbol],
+        node: Symbol,
+        exitCause: ExitCause,
+        searchPath: Traversable[Symbol],
+        level: Int
+      ): Unit = {
+        exitCause match {
+          case ExitCause.AlreadySorted ⇒
+            for(dependent ← dependents) {
+              add(dependent, node)
+            }
+
+          case _ ⇒
         }
       }
     }

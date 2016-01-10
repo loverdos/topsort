@@ -16,17 +16,21 @@
 
 package com.ckkloverdos.topsort.util
 
-import com.ckkloverdos.topsort.event.TopSortListener
+import com.ckkloverdos.topsort.event.{ExitCause, TopSortListener}
 
 import scala.collection.mutable
 
 /**
-  * Computes the topologically sorted dependencies per node.
+  * A [[com.ckkloverdos.topsort.event.TopSortListener TopSortListener]] that
+  * computes the topologically sorted dependencies per node.
   *
   * @tparam N
   */
 abstract class TopSortedPerNodeSkeleton[N] extends TopSortListener[N] {
-  // Called when a dependency is encountered
+  // Called when a dependency is encountered.
+  // "A -> B" means "A depends on B" and
+  //   - "A" is the dependent and
+  //   - "B" is the dependency
   protected def addDependency(dependent: N, dependency: N): Unit
   // Called when a node is added to the topologically sorted set
   protected def addSortedNode(node: N): Unit
@@ -39,15 +43,20 @@ abstract class TopSortedPerNodeSkeleton[N] extends TopSortListener[N] {
   // Inserts `frontDeps` as the first topsorted dependencies of `node`
   protected def insertFrontDependencies(node: N, frontDeps: Dependencies): Unit
 
-  override def onAlreadySorted(dependents: List[N], node: N, level: Int): Unit = {
-    // we keep adding pairs, since this time `node` may appear with more
-    // `dependents` than in `onAddedToSorted`
-    dependents.foreach(dependent ⇒ addDependency(dependent, node))
-  }
+  override def onExit(dependents: List[N], node: N, exitCause: ExitCause, searchPath: Traversable[N], level: Int): Unit = {
+    exitCause match {
+      case ExitCause.Sorted ⇒
+        // See comment in [[addDependency]]
+        dependents.foreach(dependent ⇒ addDependency(dependent, node))
+        addSortedNode(node)
 
-  override def onAddedToSorted(dependents: List[N], node: N, level: Int): Unit = {
-    dependents.foreach(dependent ⇒ addDependency(dependent, node))
-    addSortedNode(node)
+      case ExitCause.AlreadySorted ⇒
+        // we keep adding pairs, since this time `node` may appear with more
+        // `dependents` than in the case where exitCause = Sorted
+        dependents.foreach(dependent ⇒ addDependency(dependent, node))
+
+      case _ ⇒
+    }
   }
 
   override def onResultSorted(sorted: Traversable[N]): Unit = {
