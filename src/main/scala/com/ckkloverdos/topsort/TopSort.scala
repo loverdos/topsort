@@ -21,35 +21,6 @@ import com.ckkloverdos.topsort.event.{TopSortListeners, ResultListener, TopSortL
 import scala.collection.mutable
 
 /**
- * Result parent type for topological sorting.
- * Two are the possible outcomes: Success is denoted by [[com.ckkloverdos.topsort.TopSortOk]]
- * and failure is denoted by [[com.ckkloverdos.topsort.TopSortCycle]].
- *
- * @tparam N is the graph node type
- *
- * @see TopSortOk, TopSortCycle
- */
-sealed trait TopSortResult[N]
-
-/**
- * A successful topological sorting result.
- *
- * @param sorted
- * @tparam N is the graph node type
- */
-final case class TopSortOk[N](sorted: Traversable[N]) extends TopSortResult[N]
-
-/**
- * A failed topological sorting result due to a cyclic dependency.
- * The `path` provided is the detected cycle.
- *
- * @param path The detected cycle.
- * @tparam N is the graph node type
- *
- */
-final case class TopSortCycle[N](path: Traversable[N]) extends TopSortResult[N]
-
-/**
  * Generalized, event-based topological sorter.
  */
 class TopSort {
