@@ -50,7 +50,7 @@ class TopSort {
       //   1. The node already exists in the `topSorted` set
       //   2. The node has already been searched, so we have a cyclic dependency
       //   3. Checking the dependencies result in a cycle
-      //   4. We can proceed searching the remaining nodes (as given by the graph structure)
+      //   4. We can proceed searching the remaining (as given by the graph structure) nodes
       listener.onEnter(dependents, node, level)
 
       // 1. 1st exit point, as mentioned above
@@ -76,10 +76,22 @@ class TopSort {
       searchPath += node
       listener.onAddedToSearchPath(searchPath, dependents, node, level)
 
-      val dependencies = graphStructure.nodeDependencies(graph, node)
+      val dependencies0 = graphStructure.nodeDependencies(graph, node)
+      val (dependencies, dependenciesCopy) = dependencies0.duplicate
+
+      val dependents1 = node :: dependents
+      val level1 = level + 1
+
+      // Notify that we begin processing the dependencies of the node
+      listener.onNodeDependenciesBegin(dependents1, node, dependenciesCopy, level1)
 
       // Process the dependencies first
-      val dependencyResult = sortNodes(node :: dependents, dependencies, level + 1)
+      val dependencyResult = sortNodes(dependents1, dependencies, level1)
+
+      // Notify that we have ended processing the dependencies of the node
+      // also informing of the result
+      listener.onNodeDependenciesEnd(dependents1, node, dependencyResult, level)
+
       // 3. 3rd exit point, as mentioned above
       if(!dependencyResult) {
         return false
@@ -98,8 +110,11 @@ class TopSort {
       sortNodes(dependents, remaining, level)
     }
 
+    // Get all the nodes in the form of an iterator
     val nodes = graphStructure.nodes(graph)
 
+    // Sort them topologically, detecting any cycles in the process.
+    // A `false` result means we detected a cycle, so the sorting failed.
     val result = sortNodes(Nil, nodes, 0)
     if(result)
       listener.onResultSorted(topSorted)

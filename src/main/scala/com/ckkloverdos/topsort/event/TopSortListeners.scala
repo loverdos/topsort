@@ -20,6 +20,12 @@ class TopSortListeners[N](listeners: TopSortListener[N]*) extends TopSortListene
   override def onEnter(dependents: List[N], node: N, level: Int): Unit =
     listeners.foreach(_.onEnter(dependents, node, level))
 
+  override def onNodeDependenciesBegin( dependents: List[N], node: N, dependencies: Iterator[N], level: Int): Unit =
+    listeners.foreach(_.onNodeDependenciesBegin(dependents, node, dependencies, level))
+
+  override def onNodeDependenciesEnd( dependents: List[N], node: N, result: Boolean, level: Int): Unit  =
+    listeners.foreach(_.onNodeDependenciesEnd(dependents, node, result, level))
+
   override def onCycle(path: Traversable[N], level: Int): Unit =
     listeners.foreach(_.onCycle(path, level))
 

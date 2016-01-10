@@ -23,6 +23,18 @@ package event
 trait TopSortListener[N] {
   def onEnter(dependents: List[N], node: N, level: Int): Unit = {}
 
+  /**
+    * Notifies that the algorithm begins processing the `dependencies` of the `node`.
+    */
+  def onNodeDependenciesBegin(dependents: List[N], node: N, dependencies: Iterator[N], level: Int): Unit = {}
+
+  /**
+    * Notifies that the algorithm has ended processing the `dependencies` of the `node`,
+    * also providing the so-far `result`. A cycle has been reached if and only if the
+    * `result` is `false` (but the algorithm has not finished yet).
+    */
+  def onNodeDependenciesEnd(dependents: List[N], node: N, result: Boolean, level: Int): Unit = {}
+
   def onAlreadySorted(dependents: List[N], node: N, level: Int): Unit = {}
 
   /**
