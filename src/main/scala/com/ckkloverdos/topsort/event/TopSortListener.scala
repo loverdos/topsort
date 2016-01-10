@@ -35,7 +35,7 @@ trait TopSortListener[N] {
   def onCycle(path: Traversable[N], level: Int): Unit = {}
 
   /**
-    * Notifies that the algorith proceeds with the given `node`, that is
+    * Notifies that the algorithm proceeds with the given `node`, that is
     * it has not been sorted yet and it has not been searched before (so that
     * we are not in cycle).
     *
@@ -87,31 +87,4 @@ trait TopSortListener[N] {
 object TopSortListener {
   final def NoOpListener[N]: TopSortListener[N] = new TopSortListener[N] {}
 }
-
-class TopSortListeners[N](listeners: TopSortListener[N]*) extends TopSortListener[N] {
-  override def onEnter(dependents: List[N], node: N, level: Int): Unit =
-    listeners.foreach(_.onEnter(dependents, node, level))
-
-  override def onCycle(path: Traversable[N], level: Int): Unit =
-    listeners.foreach(_.onCycle(path, level))
-
-  override def onAddedToSearchPath(path: Traversable[N], dependents: List[N], addedNode: N, level: Int): Unit =
-    listeners.foreach(_.onAddedToSearchPath(path, dependents, addedNode, level))
-
-  override def onRemovedFromSearchPath(path: Traversable[N], removedNode: N, level: Int): Unit =
-    listeners.foreach(_.onRemovedFromSearchPath(path, removedNode, level))
-
-  override def onAddedToSorted(dependents: List[N], node: N, level: Int): Unit =
-    listeners.foreach(_.onAddedToSorted(dependents, node, level))
-
-  override def onAlreadySorted(dependents: List[N], node: N, level: Int): Unit =
-    listeners.foreach(_.onAlreadySorted(dependents, node, level))
-
-  override def onResultSorted(sorted: Traversable[N]): Unit =
-    listeners.foreach(_.onResultSorted(sorted))
-
-  override def onResultCycle(path: Traversable[N]): Unit =
-    listeners.foreach(_.onResultCycle(path))
-}
-
 
