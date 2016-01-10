@@ -157,6 +157,4 @@ class TopSort {
   }
 }
 
-class TopSortCycleException[N](path: Traversable[N]) extends Exception
-
 object TopSort extends TopSort
