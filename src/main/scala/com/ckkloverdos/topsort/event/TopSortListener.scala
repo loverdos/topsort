@@ -35,6 +35,16 @@ trait TopSortListener[N] {
     */
   def onNodeDependenciesEnd(dependents: List[N], node: N, result: Boolean, level: Int): Unit = {}
 
+  /**
+    * Notifies that the `node` has already been topsorted and, as a consequence, no further
+    * processing will take place regarding the `node` and its dependencies.
+    * This means the `node` (and its dependencies) has been successfully
+    * searched in the past and no cycles have been detected.
+    * 
+    * @param dependents The parent node hierarchy.
+    * @param node The `node` of interest.
+    * @param level The level/depth in the search DAG. Visiting the dependent nodes increases the level.
+    */
   def onAlreadySorted(dependents: List[N], node: N, level: Int): Unit = {}
 
   /**
